@@ -8,20 +8,22 @@
 
 
 
-#define SERVICE "http"
+#define PORT "8080" 
 #define BUFFER_SIZE 100
 
 
-int main(int argc, char *argv[]){
-    int status, sockfd, response_length;
+int main(){
+    int status, sockfd, client_connection_sockfd, response_length;
     char buffer[BUFFER_SIZE];
-    char http_request[] = "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n";
+    struct sockaddr_storage their_addr;
+    socklen_t addr_size;
     struct addrinfo hints, *result, *p;
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
-    if ((status = getaddrinfo(argv[1], SERVICE, &hints, &result)) != 0) {
+    if ((status = getaddrinfo(NULL, PORT, &hints, &result)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         exit(1);
     }
@@ -29,27 +31,30 @@ int main(int argc, char *argv[]){
     // for(p = result; p != NULL; p = p->ai_next);
 
     sockfd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    printf("Here is file descriptor: %d\n", sockfd);
     if(sockfd == -1){
         printf("error making socket");
         exit(1);
     }
-    connect(sockfd, result->ai_addr, result->ai_addrlen);
 
-    if((send(sockfd, http_request, strlen(http_request), 0)) == 0){
-        printf("Houston we have a problem");
-    }
-    
+    bind(sockfd, result->ai_addr, result->ai_addrlen);
+    freeaddrinfo(result);
 
-    while((response_length = recv(sockfd, buffer, BUFFER_SIZE - 1, 0)) > 0){
-        buffer[response_length] = '\0';
-        printf("%s\n", buffer);
-    }
+    listen(sockfd, 10);
 
+    printf("Server listening on port %s...\n", "8080");
 
-   
+    addr_size = sizeof their_addr;
+    client_connection_sockfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+
+    recv(client_connection_sockfd, buffer, BUFFER_SIZE, 0);
+    char response[] =
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: text/plain\r\n"
+    "Content-Length: 13\r\n"
+    "\r\n"
+    "Hello, world!";
+    send(client_connection_sockfd, response, strlen(response), 0);
+
     close(sockfd);
-
-    
 
 }
