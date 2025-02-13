@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
     hints.ai_socktype = SOCK_STREAM;
 
     if ((status = getaddrinfo(argv[1], SERVICE, &hints, &result)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        printf("getaddrinfo: %s\n", gai_strerror(status));
         exit(1);
     }
 
