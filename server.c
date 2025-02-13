@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 
 
@@ -19,11 +20,11 @@ int main(){
     socklen_t addr_size;
     struct addrinfo hints, *result, *p;
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    if ((status = getaddrinfo(NULL, PORT, &hints, &result)) != 0) {
+    if ((status = getaddrinfo("0.0.0.0", PORT, &hints, &result)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         exit(1);
     }
@@ -43,17 +44,28 @@ int main(){
 
     printf("Server listening on port %s...\n", "8080");
 
-    addr_size = sizeof their_addr;
-    client_connection_sockfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+    while(1){
+        addr_size = sizeof their_addr;
+        client_connection_sockfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+    
+    
+        char client_ip[INET_ADDRSTRLEN];
+        struct sockaddr_in *client_addr = (struct sockaddr_in *)&their_addr;
+        inet_ntop(AF_INET, &client_addr->sin_addr, client_ip, INET_ADDRSTRLEN);
+    
+        printf("Client connected from IP: %s, Port: %d\n", client_ip, ntohs(client_addr->sin_port));
+        
 
-    recv(client_connection_sockfd, buffer, BUFFER_SIZE, 0);
-    char response[] =
-    "HTTP/1.1 200 OK\r\n"
-    "Content-Type: text/plain\r\n"
-    "Content-Length: 13\r\n"
-    "\r\n"
-    "Hello, world!";
-    send(client_connection_sockfd, response, strlen(response), 0);
+        recv(client_connection_sockfd, buffer, BUFFER_SIZE, 0);
+        char response[] =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 13\r\n"
+        "\r\n"
+        "Hello, world!";
+        send(client_connection_sockfd, response, strlen(response), 0);
+    }
+   
 
     close(sockfd);
 
